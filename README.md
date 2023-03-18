@@ -30,7 +30,7 @@ For more complex use cases, consider [json.lua by rxi](https://github.com/rxi/js
 
 ## I Need Some Examples
 
-A repo with tests and examples will be made available soon.
+See the [kevn_test](https://github.com/rabbitboots/kevn_test) repo for testing. *(It will eventually have some LÖVE-specific demos once I get around to writing them.)*
 
 
 ## INI Format(s)
