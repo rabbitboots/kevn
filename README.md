@@ -58,7 +58,7 @@ That's the gist. There is no official INI specification that I'm aware of, and y
 
 * Any duplicate groups or duplicate keys within the same group are treated as an error.
 
-* The group `[]` is automatically created for any key-value pairs which appear before the first group declaration. It can be declared explicitly at the top of the file to ensure that the empty-string group is always created. Declaring it *after* it has been implicitly created is treated as an error.
+* The group `[]` is automatically created for any key-value pairs which appear before the first group declaration. It can be declared explicitly at the top of the file to ensure that the empty-string group is always created. Declaring it *after* this implicit creation is treated as an error.
 
 * By default, all groups, keys and values are returned from the parser as strings. You can pass in *modifier* callbacks to perform additional processing and validity checks on group IDs and key+value pairs. (See *API: Modifiers* for more on that.) Or you can examine the table after it has been returned.
 
@@ -204,7 +204,7 @@ Modifier callback for group IDs.
 
 `local result, new_group_id = fn_group(tbl, group_id)`
 
-* `tbl`: The work-in-progress table. (Be careful about modifying this during parsing).
+* `tbl`: The work-in-progress table. (Be careful about modifying this during parsing.)
 
 * `group_id`: The parsed group ID.
 
@@ -217,7 +217,7 @@ Modifier callback for key+value pairs.
 
 `local result, new_key, new_value = fn_key(tbl, group_id, key, value)`
 
-* `tbl`: The work-in-progress table. (Be careful about modifying this during parsing).
+* `tbl`: The work-in-progress table. (Be careful about modifying this during parsing.)
 
 * `group_id`: The group ID this key belongs to. Note that it may have been modified (changed type) by `fn_group`.
 
