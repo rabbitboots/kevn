@@ -74,7 +74,7 @@ function kevn.str2Table(str, fn_group, fn_key)
 					end
 				end
 
-				if not group_id_conv then
+				if group_id_conv == nil then
 					return false, "LINE " .. line_n .. ": failed to parse group ID: |" .. line .. "|"
 
 				elseif tbl[group_id_conv] then
@@ -100,14 +100,14 @@ function kevn.str2Table(str, fn_group, fn_key)
 					end
 				end
 
-				if not key_conv then
+				if key_conv == nil or value_conv == nil then
 					return false, "LINE " .. line_n .. ": failed to parse key-value pair: |" .. line .. "|"
 
 				else
 					-- The default / global / header group is an empty string. It's only generated if a
 					-- key-value pair is found before any group declaration, or if the file explicitly
 					-- declares it at the top with "[]".
-					if not current_group then
+					if notcurrent_group then
 						current_group_id = ""
 						current_group = {}
 						tbl[current_group_id] = current_group
