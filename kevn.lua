@@ -107,7 +107,7 @@ function kevn.str2Table(str, fn_group, fn_key)
 					-- The default / global / header group is an empty string. It's only generated if a
 					-- key-value pair is found before any group declaration, or if the file explicitly
 					-- declares it at the top with "[]".
-					if notcurrent_group then
+					if not current_group then
 						current_group_id = ""
 						current_group = {}
 						tbl[current_group_id] = current_group
