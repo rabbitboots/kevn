@@ -68,19 +68,19 @@ That's the gist. There is no official INI specification that I'm aware of, and y
 
 Without modifiers, the resulting output table looks something like this:
 
-```
+```lua
 local tbl = {
-	[""] = {                   -- ; (The default / global group)
-		this = "here",         -- this=here
-	},                         --
-	player = {                 -- [player]
-		name = "Drernrern",    -- name=Drernrern
-		health = "100",        -- health=100
-		level = "1",           -- level=1
-	},                         --
-	another_group = {          -- [another_group]
-		et = "cetera.",        -- et=cetera.
-	},
+    [""] = {                   -- ; (The default / global group)
+        this = "here",         -- this=here
+    },                         --
+    player = {                 -- [player]
+        name = "Drernrern",    -- name=Drernrern
+        health = "100",        -- health=100
+        level = "1",           -- level=1
+    },                         --
+    another_group = {          -- [another_group]
+        et = "cetera.",        -- et=cetera.
+    },
 }
 ```
 
@@ -104,7 +104,7 @@ Converts a KEVN string to a Lua table.
 
 ## kevn.table2Str
 
-Converts a table to a KEVN string. The output is unordered, comments are not supported, and all group names, keys and values must be strings. For more control over output, see *Writer Functions*.
+Converts a table to a KEVN string. The output is unordered, comments are not supported, and all group names, keys and values must be strings. For more control over output, see *API: Writer Functions*.
 
 `local str = kevn.table2Str(tbl)`
 
@@ -118,7 +118,7 @@ Converts a table to a KEVN string. The output is unordered, comments are not sup
 Use these functions to construct an INI string in pieces.
 
 
-```
+```lua
 -- Create an empty table
 local tmp = {}
 
