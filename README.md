@@ -70,16 +70,16 @@ Without modifiers, the resulting output table looks something like this:
 
 ```lua
 local tbl = {
-    [""] = {                   -- ; (The default / global group)
-        this = "here",         -- this=here
+    [""] = {                   --; (The default / global group)
+        this = "here",         --this=here
     },                         --
-    player = {                 -- [player]
-        name = "Drernrern",    -- name=Drernrern
-        health = "100",        -- health=100
-        level = "1",           -- level=1
+    player = {                 --[player]
+        name = "Drernrern",    --name=Drernrern
+        health = "100",        --health=100
+        level = "1",           --level=1
     },                         --
-    another_group = {          -- [another_group]
-        et = "cetera.",        -- et=cetera.
+    another_group = {          --[another_group]
+        et = "cetera.",        --et=cetera.
     },
 }
 ```
