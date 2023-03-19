@@ -1,6 +1,6 @@
 # KEVN
 
-KEVN ("Key Equals Value, Newline") is a super basic, INI-like file parser for Lua (LÖVE).
+KEVN ("Key Equals Value, Newline") is a basic, INI-like file parser for Lua (LÖVE).
 
 
 ```
@@ -13,10 +13,16 @@ foo=bar
 bar=foo
 ```
 
+## INI Format(s)
+
+INI files are similar to a Lua hash table with one level of nesting. They're comprised of key-value pairs (`foo=bar`) that belong to groups (`[config]`). The groups and keys are unordered. All groups have unique names, and all keys have unique names within their group.
+
+That's the gist. There is no official INI specification that I'm aware of, and you can find [any number of implementations with differing features](https://en.wikipedia.org/wiki/INI_file). If you are evaluating KEVN for use in your project, be aware that it is case-sensitive and strict about whitespace.
+
 
 ## Use Cases
 
-INI files are suitable for storage and retrieval of basic configuration, and they can also be used for basic metadata. They're human-readable, and can be read and modified with a simple text editor.
+INI files are suitable for storage and retrieval of basic configuration, and they can also be used for basic metadata. While not pretty, they are human-readable, and can be modified with a simple text editor.
 
 
 ### Bad Use Cases
@@ -31,13 +37,6 @@ For more complex use cases, consider [json.lua by rxi](https://github.com/rxi/js
 ## I Need Some Examples
 
 See the [kevn_test](https://github.com/rabbitboots/kevn_test) repo for testing. *(It will eventually have some LÖVE-specific demos once I get around to writing them.)*
-
-
-## INI Format(s)
-
-INI files are similar to a Lua hash table with one level of nesting. They're comprised of key-value pairs (`foo=bar`) that belong to groups (`[config]`). The groups and keys are unordered. All groups have unique names, and all keys have unique names within their group.
-
-That's the gist. There is no official INI specification that I'm aware of, and you can find [any number of implementations with differing features](https://en.wikipedia.org/wiki/INI_file). KEVN is case-sensitive and strict about whitespace.
 
 
 ## Parsing Details
@@ -60,7 +59,7 @@ That's the gist. There is no official INI specification that I'm aware of, and y
 
 * The group `[]` is automatically created for any key-value pairs which appear before the first group declaration. It can be declared explicitly at the top of the file to ensure that the empty-string group is always created. Declaring it *after* this implicit creation is treated as an error.
 
-* By default, all groups, keys and values are returned from the parser as strings. You can pass in *modifier* callbacks to perform additional processing and validity checks on group IDs and key+value pairs. (See *API: Modifiers* for more on that.) Or you can examine the table after it has been returned.
+* By default, all groups, keys and values are returned from the parser as strings. You can pass in *modifier* callbacks to perform additional processing and validity checks on group IDs and key+value pairs. (See *API: Modifiers* for more on that.) Or you can edit the table after it has been returned.
 
 
 ## Output Table Format
