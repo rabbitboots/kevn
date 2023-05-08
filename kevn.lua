@@ -29,12 +29,12 @@ SOFTWARE.
 local kevn = {}
 
 
-function errArgBadType(n, expected, val)
+local function errArgBadType(n, expected, val)
 	error("argument #" .. n .. ": bad type (expected " .. expected .. ", got " .. type(val) .. ")", 2)
 end
 
 
-function errNoLineFeeds(n)
+local function errNoLineFeeds(n)
 	error("argument #" .. n .. ": string cannot contain line feeds (newlines).", 2)
 end
 
