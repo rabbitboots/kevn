@@ -43,7 +43,7 @@ See the [kevn_test](https://github.com/rabbitboots/kevn_test) repo for testing. 
 
 * Empty lines, lines containing only whitespace, and lines beginning with a semicolon (comments) are ignored.
 
-* Line feeds (`\n`) Are used to split lines, and therefore cannot be part of any group ID, key or value.
+* Line feeds (`\n`) are used to split lines, and therefore cannot be part of any group ID, key or value.
   * On Windows, when loading files from disk, you may need to convert `\r\n` pairs to just `\n`. LÖVE's `filesystem` module does this automatically.
 
 * With one exception, as far as the parser is concerned, **all other whitespace is significant.** `foo = bar` will result in the key "foo " and the value " bar". The group declaration `[con fig ]` becomes "con fig ".
