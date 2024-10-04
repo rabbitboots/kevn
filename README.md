@@ -1,7 +1,10 @@
+**Version: 2.0.0**
+
 # KEVN
 
-KEVN ("Key Equals Value, Newline") is a basic, INI-like file parser for Lua (LÖVE).
+KEVN ("Key Equals Value, Newline") is an INI-like file parser for Lua 5.1 - 5.4.
 
+A KEVN file looks like this:
 
 ```
 ; Comment
@@ -13,63 +16,167 @@ foo=bar
 bar=foo
 ```
 
+# Package Information
+
+Files and folders beginning with `test` can be deleted.
+
+Files beginning with `pile` are required (they contain boilerplate Lua snippets).
+
+`kevn.lua` is the main file.
+
+
+# API: Main
+
+## kevn.decode
+
+Converts a KEVN string to a Lua table.
+
+`local tbl = kevn.decode(str)`
+
+* `str`: The KEVN string to parse.
+
+**Returns:** A Lua table, or `nil`, an error string, and a line number if parsing failed.
+
+
+## kevn.encode
+
+Converts a table to a KEVN string. The output is sorted alphabetically. All group names, keys and values must be strings. For more control over output, see *API: Writer Functions*.
+
+`local str = kevn.encode(tbl)`
+
+* `tbl` The table to convert.
+
+**Returns:** A string based on the table.
+
+
+# API: Writer Functions
+
+Use these functions to construct a KEVN string in pieces. They automatically escape characters where necessary.
+
+Note that it's possible to create an invalid KEVN string by writing duplicate group or key names. You can reload the string with `kevn.decode` to test it.
+
+
+```lua
+-- Create an empty table
+local tmp = {}
+
+-- Write some lines
+kevn.addGroupID(tmp, "the_group")
+kevn.addItem(tmp, "hello", "world")
+
+-- Finalize
+local str = table.concat(tmp, "\n")
+
+-- Output:
+--[[
+[the_group]
+hello=world
+--]]
+
+-- To add comments: table.insert(tmp, "; a comment")
+-- To add empty lines: table.insert(tmp, "")
+```
+
+
+## kevn.addGroupID
+
+Adds a group ID to the writing table.
+
+`kevn.addGroupID(t, group_id)`
+
+* `t` The work-in-progress table of strings.
+
+* `group_id` The group ID to write.
+
+
+## kevn.addItem
+
+Appends a key-value pair to the writing table.
+
+`kevn.addItem(t, key, value)`
+
+* `t` The work-in-progress table of strings.
+
+* `key` *(string)* The key to write.
+
+* `value` *(string)* The value to write.
+
+
+# Notes
+
 ## INI Format(s)
 
-INI files are similar to a Lua hash table with one level of nesting. They're comprised of key-value pairs (`foo=bar`) that belong to groups (`[config]`). The groups and keys are unordered. All groups have unique names, and all keys have unique names within their group.
+INI files are made up of key-value pairs (`foo=bar`) that belong to groups (`[config]`). The groups and keys are unordered. All groups have unique names, and all keys have unique names within their group.
 
-That's the gist. There is no official INI specification that I'm aware of, and you can find [any number of implementations with differing features](https://en.wikipedia.org/wiki/INI_file). If you are evaluating KEVN for use in your project, be aware that it is case-sensitive and strict about whitespace.
-
-
-## Use Cases
-
-INI files are suitable for storage and retrieval of basic configuration, and they can also be used for basic metadata. While not pretty, they are human-readable, and can be modified with a simple text editor.
+There is no official INI specification; you can find [any number of implementations with differing features](https://en.wikipedia.org/wiki/INI_file).
 
 
-### Bad Use Cases
+## Encoding
 
-KEVN is not well suited for ordered sequences of data, or text that spans multiple lines.
-
-While KEVN imposes no limit on the size of lines, very long stretches of text without a break can be difficult for users to read.
-
-For more complex use cases, consider [json.lua by rxi](https://github.com/rxi/json.lua) or [serpent by Paul Kulchenko](https://github.com/pkulchenko/serpent)
-
-
-## I Need Some Examples
-
-See the [kevn_test](https://github.com/rabbitboots/kevn_test) repo for testing. *(It will eventually have some LÖVE-specific demos once I get around to writing them.)*
+KEVN assumes UTF-8 encoding, but it does not perform any kind of validation. You can validate the encoding of a UTF-8 string with [Lua 5.3's utf8 library](https://www.lua.org/manual/5.3/manual.html#6.5), [kikito's UTF-8 validator](https://github.com/kikito/utf8_validator.lua), [utf8Tools](https://github.com/rabbitboots/utf8_tools), etc.
 
 
 ## Parsing Details
 
-* Empty lines, lines containing only whitespace, and lines beginning with a semicolon (comments) are ignored.
+### Naming
 
-* Line feeds (`\n`) are used to split lines, and therefore cannot be part of any group ID, key or value.
-  * On Windows, when loading files from disk, you may need to convert `\r\n` pairs to just `\n`. LÖVE's `filesystem` module does this automatically.
+Keys must contain at least one character. Values are allowed to be empty strings.
 
-* With one exception, as far as the parser is concerned, **all other whitespace is significant.** `foo = bar` will result in the key "foo " and the value " bar". The group declaration `[con fig ]` becomes "con fig ".
-  * The one exception is that trailing whitespace after the `]` in a group declaration is ignored: `[config]    `
+A hidden default group is automatically created for any key-value pairs which appear before the first group declaration. When allocated, its ID is an empty string. Besides the hidden default group, all other group IDs must contain at least one character.
 
-* Keys cannot contain `=`, and they cannot have `;` or `[` as their first character.
+Duplicate groups and duplicate keys within the same group are treated as an error.
 
-* Keys and values can be empty. A single `=` is equivalent to a key of `""` with a value of `""`.
 
-* Group IDs cannot contain `]`.
+### Ignored Content
 
-* Any duplicate groups or duplicate keys within the same group are treated as an error.
+KEVN ignores empty lines, lines containing only whitespace, and lines beginning with a semicolon (comments).
 
-* The group `[]` is automatically created for any key-value pairs which appear before the first group declaration. It can be declared explicitly at the top of the file to ensure that the empty-string group is always created. Declaring it *after* this implicit creation is treated as an error.
 
-* By default, all groups, keys and values are returned from the parser as strings. You can pass in *modifier* callbacks to perform additional processing and validity checks on group IDs and key+value pairs. (See *API: Modifiers* for more on that.) Or you can edit the table after it has been returned.
+### Whitespace
+
+Almost all whitespace is significant:
+
+* `[ goo ber ]` -> `" goo ber "`.
+
+* `foo = bar` -> `["foo "] = " bar"`
+
+One exception: trailing whitespace after a group declaration is ignored: `[foo]   `
+
+
+### Escape Sequences
+
+Bytes in a KEVN string can be escaped with the form `\xx`, where `xx` is a hex value from `00` to `ff`.
+
+
+#### Encoder Escape Behavior
+
+The encoder automatically escapes characters, so you only need to worry about it if you are authoring KEVN files by hand.
+
+|Character|Group IDs|Keys|Values|Escape Sequence|
+|-|-|-|-|-|
+|`\n`|Yes|Yes|Yes|`\0a`|
+|`\r`|Yes|Yes|Yes|`\0d`|
+|`;`|No|1st char|No|`3b`|
+|`=`|No|Yes|No|`3d`|
+|`[`|No|1st char|No|`5b`|
+|`\`|Yes|Yes|Yes|`\5c`|
+|`]`|Yes|No|No|`\5d`|
+
+Note that all backslashes need to be escaped: `path=C:\DOS` -> `path=C:\5cDOS`
+
+
+#### Decoder Escape Behavior
+
+The decoder transforms all escape sequences found in the substrings of group IDs, keys and values.
 
 
 ## Output Table Format
 
-
-Without modifiers, the resulting output table looks something like this:
+Here is an example of a table generated from kevn.decode():
 
 ```lua
 local tbl = {
-    [""] = {                   --; (The default / global group)
+    [""] = {                   --; (The default / hidden group)
         this = "here",         --this=here
     },                         --
     player = {                 --[player]
@@ -84,152 +191,9 @@ local tbl = {
 ```
 
 
-# API: Main
-
-## kevn.str2Table
-
-Converts a KEVN string to a Lua table.
-
-`local tbl = kevn.str2Table(str, fn_group, fn_key)`
-
-* `str`: The KEVN string to parse.
-
-* `fn_group`: An optional group ID modifier function. (See *API: Modifiers*)
-
-* `fn_key`: An optional key+value modifier function. (See *API: Modifiers*)
-
-**Returns:** A Lua table, or false and error string if parsing failed.
-
-
-## kevn.table2Str
-
-Converts a table to a KEVN string. The output is unordered, comments are not supported, and all group names, keys and values must be strings. For more control over output, see *API: Writer Functions*.
-
-`local str = kevn.table2Str(tbl)`
-
-* `tbl` The table to convert.
-
-**Returns:** A string based on the table.
-
-
-# API: Writer Functions
-
-Use these functions to construct an INI string in pieces.
-
-
-```lua
--- Create an empty table
-local tmp = {}
-
--- Write some lines
-kevn.appendGroupID(tmp, "the_group")
-kevn.appendKey(tmp, "hello", "world")
-
--- Finalize
-local str = table.concat(tmp, "\n")
-
--- Output:
---[[
-[the_group]
-hello=world
---]]
-```
-
-Note that it's possible to create an invalid KEVN string by writing duplicate group or key names. You can reload the string with `kevn.str2Table` to test it.
-
-
-## kevn.appendGroupID
-
-Appends a group ID to the writing table.
-
-`kevn.appendGroupID(temp, group_id)`
-
-* `temp` The WIP table of strings.
-
-* `group_id` The group ID to write. Cannot contain `\n` or `]`.
-
-
-## kevn.appendKey
-
-Appends a key-value pair to the writing table.
-
-`kevn.appendKey(temp, key, value)`
-
-* `temp` The WIP table of strings.
-
-* `key` *(string)* The key to write. Cannot contain `\n` or `=`, and cannot have `;` as its first character.
-
-* `value` *(string)* The value to write. Cannot contain `\n`.
-
-
-
-## kevn.appendComment
-
-Appends a comment to the writing table. Line feeds (`\n`) are permitted, and will split the string into multiple comment lines.
-
-`kevn.appendComment(temp, comment)`
-
-* `temp` The WIP table of strings.
-
-* `comment` *(string)* The comment to write.
-
-
-## kevn.appendEmpty
-
-Appends one or more empty lines for spacing.
-
-`kevn.appendEmpty(temp, n)`
-
-* `temp`: The WIP table of strings.
-
-* `n` *(Number)* The number of empty lines to append. Default: 1
-
-
-
-# API: Modifiers
-
-Modifiers are optional callbacks that allow you to verify and mess with group IDs, keys and values while parsing. Use cases include:
-
-* Implementation of type conversion or escape sequences, like converting the string `"true"` to boolean `true`.
-
-* Checking that a key+value pair is valid in context.
-
-You can skip this entirely and check the returned table after the fact, but using modifiers does allow including the line number of an offending section in your error messages.
-
-
-## fn_group
-
-Modifier callback for group IDs.
-
-`local result, new_group_id = fn_group(tbl, group_id)`
-
-* `tbl`: The work-in-progress table. (Be careful about modifying this during parsing.)
-
-* `group_id`: The parsed group ID.
-
-**Returns:** 1) true or false/nil, indicating success or failure, 2) A replacement group ID with no type restrictions, or an error string in the event of failure.
-
-
-## fn_key
-
-Modifier callback for key+value pairs.
-
-`local result, new_key, new_value = fn_key(tbl, group_id, key, value)`
-
-* `tbl`: The work-in-progress table. (Be careful about modifying this during parsing.)
-
-* `group_id`: The group ID this key belongs to. Note that it may have been modified (changed type) by `fn_group`.
-
-* `key`: The parsed key.
-
-* `value`: The parsed value.
-
-**Returns**: 1) true or false/nil, indicating success or failure, 2) a replacement key with no type restrictions, or an error string in the event of failure, and 3) a replacement value with no type restrictions.
-
-
 # MIT License
 
-Copyright (c) 2023 RBTS
+Copyright (c) 2023 - 2024 RBTS
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -248,4 +212,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-

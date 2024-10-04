@@ -1,10 +1,11 @@
--- KEVN ("Key Equals Value, Newline") -- a simple INI-like parser for Lua.
--- See README.md for more info.
+-- KEVN
+-- v2.0.0
+
 
 --[[
 MIT License
 
-Copyright (c) 2023 RBTS
+Copyright (c) 2023 - 2024 RBTS
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,206 +27,134 @@ SOFTWARE.
 --]]
 
 
-local kevn = {}
+local M = {}
 
 
-local function errArgBadType(n, expected, val)
-	error("argument #" .. n .. ": bad type (expected " .. expected .. ", got " .. type(val) .. ")", 2)
+local PATH = ... and (...):match("(.-)[^%.]+$") or ""
+
+
+local _argType = require(PATH .. "pile_arg_check").type
+
+
+M.lang = {
+	err_bad_ln = "syntax error",
+	err_bad_esc = "invalid escape sequence",
+	err_dupe_grp = "duplicate group",
+	err_dupe_key = "duplicate key in group",
+	err_enc_not_str = "group IDs, keys and values must be strings",
+	err_str_1_char = "group IDs and keys must contain at least one character"
+}
+local lang = M.lang
+
+
+local _unesc_err
+local function _hof_esc(s) return tostring("\\" .. string.format("%02x", s:byte())) end
+local function _hof_unesc(s)
+	local n = tonumber(s, 16)
+	if not n then
+		_unesc_err = true
+		return
+	end
+	return string.char(n)
 end
+local function _unesc(s) return s:gsub("\\(..)", _hof_unesc) end
 
 
-local function errNoLineFeeds(n)
-	error("argument #" .. n .. ": string cannot contain line feeds (newlines).", 2)
-end
+function M.decode(s)
+	_argType(1, s, "string")
 
-
-function kevn.str2Table(str, fn_group, fn_key)
-
-	local tbl = {}
-
-	-- Assertions
-	-- [[
-	if type(str) ~= "string" then errArgBadType(1, "string", str)
-	elseif fn_group and type(fn_group) ~= "function" then errArgBadType(2, "function", fn_group)
-	elseif fn_key and type(fn_key) ~= "function" then errArgBadType(3, "function", fn_key) end
-	--]]
-
-	local current_group
-	local current_group_id = ""
-	local line_n = 1 -- for error messages
-
-	for line in string.gmatch(str, "\n?([^\n]*)") do
-
-		local byte1 = string.byte(line, 1)
-
-		-- Skip comments, empty lines and whitespace-only lines
-		if #line > 0 and string.find(str, "%S") and byte1 ~= 59 then -- 59 == ';'
-			-- Group declaration
-			if byte1 == 91 then -- '['
-				local group_id = string.match(line, "^([^%]]*)]%s*$", 2)
-				local group_id_conv = group_id
-
-				if fn_group then
-					local result
-					result, group_id_conv = fn_group(tbl, group_id)
-					if not result then
-						-- group_id_conv == error string
-						return false, "LINE " .. line_n .. ": " .. group_id_conv or "(fn_group callback failed)"
-					end
-				end
-
-				if group_id_conv == nil then
-					return false, "LINE " .. line_n .. ": failed to parse group ID: |" .. line .. "|"
-
-				elseif tbl[group_id_conv] then
-					return false, "LINE " .. line_n .. ": duplicate group: |" .. group_id .. "|"
-
-				else
-					tbl[group_id_conv] = {}
-					current_group_id = group_id_conv
-					current_group = tbl[current_group_id]
-				end
-
-			-- Key-Value pair
+	_unesc_err = nil
+	s = s:gsub("\r\n", "\n")
+	local grps, ln, this_grp = {}, 1
+	for line in s:gmatch("([^\n]*)\n?") do
+		if line:find("^[^;]") and line:find("%S") then
+			local grp_id = line:match("^%[([^%]]+)]%s*$")
+			if grp_id then
+				grp_id = _unesc(grp_id)
+				if grps[grp_id] then return nil, lang.err_dupe_grp, ln end
+				grps[grp_id] = {}
+				this_grp = grps[grp_id]
 			else
-				local key, value = string.match(line, "^([^=]*)=(.*)$")
-				local key_conv, value_conv = key, value
-
-				if fn_key then
-					local result
-					result, key_conv, value_conv = fn_key(tbl, current_group_id, key, value)
-					if not result then
-						-- key_conv == error string
-						return false, "LINE " .. line_n .. ": " .. key_conv or "(fn_key callback failed)"
-					end
+				local k, v = line:match("^([^=]+)=(.*)$")
+				if not k then return nil, lang.err_bad_ln, ln end
+				if not this_grp then
+					grps[""] = {}
+					this_grp = grps[""]
 				end
-
-				if key_conv == nil or value_conv == nil then
-					return false, "LINE " .. line_n .. ": failed to parse key-value pair: |" .. line .. "|"
-
-				else
-					-- The default / global / header group is an empty string. It's only generated if a
-					-- key-value pair is found before any group declaration, or if the file explicitly
-					-- declares it at the top with "[]".
-					if not current_group then
-						current_group_id = ""
-						current_group = {}
-						tbl[current_group_id] = current_group
-					end
-
-					if current_group[key_conv] then
-						return false, "LINE " .. line_n .. ": duplicate key: |" .. key .. "|"
-					end
-
-					current_group[key_conv] = value_conv
-				end
+				k, v = _unesc(k), _unesc(v)
+				if this_grp[k] then return nil, lang.err_dupe_key, ln end
+				this_grp[k] = v
 			end
 		end
-
-		line_n = line_n + 1
+		if _unesc_err then return nil, lang.err_bad_esc, ln end
+		ln = ln + 1
 	end
-
-	return tbl
+	return grps
 end
 
 
-local function parseGroup(temp, grp)
-
+local function _parseGroup(t, grp, lf)
+	local srt = {}
 	for k, v in pairs(grp) do
-		kevn.appendKey(temp, k, v)
+		if type(k) ~= "string" then error(lang.err_enc_not_str) end
+		srt[#srt + 1] = k
 	end
-	temp[#temp + 1] = ""
+	table.sort(srt)
+	for i, k in ipairs(srt) do
+		M.addItem(t, k, grp[k])
+	end
+	if lf then
+		t[#t + 1] = ""
+	end
 end
 
 
-function kevn.table2Str(tbl)
+function M.encode(tbl)
+	_argType(1, tbl, "table")
 
-	local temp = {}
-	local default_group = tbl[""]
+	local tmp, def_grp = {}, tbl[""]
+	if def_grp then _parseGroup(tmp, def_grp, true) end
 
-	if default_group then
-		parseGroup(temp, default_group)
-	end
-
-	for k, v in pairs(tbl) do
+	local srt = {}
+	for k in pairs(tbl) do
+		if type(k) ~= "string" then error(lang.err_enc_not_str) end
 		if k ~= "" then
-			kevn.appendGroupID(temp, k)
-			parseGroup(temp, v)
+			srt[#srt + 1] = k
 		end
 	end
-
-	local str = table.concat(temp, "\n")
-	return str
-end
-
-
-function kevn.appendGroupID(temp, group_id)
-
-	-- Assertions
-	-- [[
-	if type(temp) ~= "table" then errArgBadType(1, "table", temp)
-	elseif type(group_id) ~= "string" then errArgBadType(2, "string", group_id)
-	elseif string.find(group_id, "]", 1, true) then error("group IDs cannot contain ']' characters.")
-	elseif string.find(group_id, "\n", 1, true) then errNoLineFeeds(2) end
-	--]]
-
-	temp[#temp + 1] = "[" .. group_id .. "]"
-end
-
-
-function kevn.appendKey(temp, key, value)
-
-	-- Assertions
-	-- [[
-	if type(temp) ~= "table" then errArgBadType(1, "table", temp)
-	elseif type(key) ~= "string" then errArgBadType(2, "string", key)
-	elseif string.find(key, "=") then error("keys cannot contain '=' characters.")
-	elseif string.find(key, "^;") then error("keys cannot contain ';' as their first character.")
-	elseif string.find(key, "\n", 1, true) then errNoLineFeeds(2)
-	elseif type(value) ~= "string" then errArgBadType(3, "string", value)
-	elseif string.find(value, "\n", 1, true) then errNoLineFeeds(3) end
-	--]]
-
-	temp[#temp + 1] = key .. "=" .. value
-end
-
-
-
-function kevn.appendComment(temp, comment)
-
-	-- Assertions
-	-- [[
-	if type(temp) ~= "table" then errArgBadType(1, "table", temp)
-	elseif type(comment) ~= "string" then errArgBadType(2, "string", comment) end
-	--]]
-
-	-- In Lua 5.1, 'string.gmatch(comment, "\n?([^\n]*)")' reads an additional empty-string
-	-- match at the end. :(
-
-	local i = 1;
-	while i <= #comment do
-		local j = string.find(comment, "\n", i, true) or #comment + 1
-		temp[#temp + 1] = "; " .. string.sub(comment, i, j - 1)
-		i = j + 1
+	table.sort(srt)
+	for i, k in ipairs(srt) do
+		M.addGroupID(tmp, k)
+		_parseGroup(tmp, tbl[k], i < #srt)
 	end
+
+	return table.concat(tmp, "\n")
 end
 
 
-function kevn.appendEmpty(temp, n)
+function M.addGroupID(t, gid)
+	_argType(1, t, "table")
+	_argType(2, gid, "string")
+	if #gid == 0 then error(lang.err_str_1_char) end
 
-	-- Assertions
-	-- [[
-	if type(temp) ~= "table" then errArgBadType(1, "table", temp)
-	elseif n and type(n) ~= "number" then errArgBadType(2, "number", n) end
-	--]]
-
-	n = n or 1
-	n = math.max(1, math.floor(n))
-
-	for i = 1, n do
-		temp[#temp + 1] = ""
-	end
+	gid = gid:gsub("[\r\n%]\\]", _hof_esc)
+	t[#t + 1] = "[" .. gid .. "]"
 end
 
 
-return kevn
+function M.addItem(t, k, v)
+	_argType(1, t, "table")
+	_argType(2, k, "string")
+	_argType(3, v, "string")
+	if #k == 0 then error(lang.err_str_1_char) end
+
+	local k1 = k:sub(1, 1)
+	k = k:gsub("[\r\n=\\]", _hof_esc)
+	if k1 == ";" then k = "\\3b" .. k:sub(2)
+	elseif k1 == "[" then k = "\\5b" .. k:sub(2) end
+	v = v:gsub("[\r\n\\]", _hof_esc)
+	t[#t + 1] = k .. "=" .. v
+end
+
+
+return M
