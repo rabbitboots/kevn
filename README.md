@@ -18,11 +18,11 @@ bar=foo
 
 # Package Information
 
+`kevn.lua` is the main file.
+
 Files and folders beginning with `test` can be deleted.
 
 Files beginning with `pile` are required (they contain boilerplate Lua snippets).
-
-`kevn.lua` is the main file.
 
 
 # API: Main
