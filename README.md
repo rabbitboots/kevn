@@ -156,9 +156,9 @@ The encoder automatically escapes characters, so you only need to worry about it
 |-|-|-|-|-|
 |`\n`|Yes|Yes|Yes|`\0a`|
 |`\r`|Yes|Yes|Yes|`\0d`|
-|`;`|No|1st char|No|`3b`|
-|`=`|No|Yes|No|`3d`|
-|`[`|No|1st char|No|`5b`|
+|`;`|No|1st char|No|`\3b`|
+|`=`|No|Yes|No|`\3d`|
+|`[`|No|1st char|No|`\5b`|
 |`\`|Yes|Yes|Yes|`\5c`|
 |`]`|Yes|No|No|`\5d`|
 
@@ -191,7 +191,10 @@ local tbl = {
 ```
 
 
-# MIT License
+# License
+
+```
+MIT License
 
 Copyright (c) 2023 - 2024 RBTS
 
@@ -212,3 +215,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
