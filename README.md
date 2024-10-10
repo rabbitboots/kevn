@@ -1,3 +1,7 @@
+# Archived and Not Supported
+
+KEVN is no longer supported. I've reached the opinion that Lua table constructors are good enough for small configuration files, and they can be serialized out with another library like [Serpent](https://github.com/pkulchenko/serpent) or my [T2S2](https://github.com/rabbitboots/t2s2).
+
 **Version: 2.0.0**
 
 # KEVN
